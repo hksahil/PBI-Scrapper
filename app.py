@@ -3,19 +3,6 @@ import pandas as pd
 from pbixray.core import PBIXRay
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# MUST be first Streamlit command
-st.set_page_config(page_title="PBIX Assistant", layout="wide")
-
-# Hide Streamlit default UI elements
-hide_streamlit_style = """
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
 def sizeof_fmt(num, suffix="B"):
     for unit in ("", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"):
         if abs(num) < 1024.0:
@@ -31,30 +18,37 @@ def aggrid_table(df, fit_columns=True):
     AgGrid(df, gridOptions=gridOptions, fit_columns_on_grid_load=fit_columns)
 
 def app():
-    st.title("Explore PBIX files without Power BI App or a license!")
+    st.set_page_config(page_title="PBIX Assistant", layout="wide")
+    st.title("PBIX Assistant – Explore your PBIX file like a Pro")
+    st.subheader("Without opening PowerBI (or) having PowerBI Licenses :)")
 
     uploaded_file = st.file_uploader("📁 Upload a PBIX file", type="pbix")
     
     if uploaded_file:
         model = PBIXRay(uploaded_file)
 
+        # Header Metrics
         with st.container():
             st.subheader("PBIX Metadata Overview")
             met1, met2 = st.columns(2)
             met1.metric(label='Model Size', value=sizeof_fmt(model.size))
             met2.metric(label='Number of Tables', value=model.tables.size)
 
+        # Tables Stats
         st.subheader("Table Analysis")
-        aggrid_table(model.statistics)
+        st.dataframe(model.statistics)
 
+        # Relationships
         if model.relationships.size:
             st.subheader("Relationships Analysis")
-            aggrid_table(model.relationships)
+            st.dataframe(model.relationships)
 
+        # Power Query
         if model.power_query.size:
             st.subheader("PowerQuery Analysis")
-            aggrid_table(model.power_query)
+            st.dataframe(model.power_query)
 
+        # Merge Schema + DAX Columns
         st.subheader("Columns Analysis")
         schema_df = model.schema.copy()
         calculated_df = model.dax_columns.copy()
@@ -67,12 +61,14 @@ def app():
                 schema_df[col] = None
 
         merged_table = pd.concat([schema_df, calculated_df], ignore_index=True)
-        aggrid_table(merged_table)
+        st.dataframe(merged_table)
 
+        # DAX Measures
         if model.dax_measures.size:
             st.subheader("DAX Measures")
-            aggrid_table(model.dax_measures)
+            st.dataframe(model.dax_measures)
 
+        # Table Preview with Error Handling
         st.subheader("Table Viewer")
 
         valid_tables = []
@@ -91,25 +87,14 @@ def app():
                 try:
                     table_df = model.get_table(table_name_input)
                     st.write(f"Preview of table: `{table_name_input}`")
-                    aggrid_table(table_df)
+                    #aggrid_table(table_df)
+                    st.dataframe(table_df)
                 except ValueError as e:
                     st.error(f"⚠️ Could not retrieve the table due to error:\n\n{e}")
                 except Exception as e:
                     st.error(f"❌ Unexpected error while loading table:\n\n{e}")
     else:
         st.info("Upload a PBIX file to get started.")
-
-#     # Custom footer
-# custom_footer = """
-#     <div style="position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 14px;">
-#         Made with ❤️ by 
-#         <a href="https://sahilchoudhary.com/" target="_blank" style="color: #1f77b4; text-decoration: underline;">
-#             Sahil
-#         </a>
-#     </div>
-# """
-# st.markdown(custom_footer, unsafe_allow_html=True)
-
 
 if __name__ == '__main__':
     app()
