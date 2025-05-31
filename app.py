@@ -36,17 +36,17 @@ def app():
 
         # Tables Stats
         st.subheader("Table Analysis")
-        st.dataframe(model.statistics)
+        aggrid_table(model.statistics)
 
         # Relationships
         if model.relationships.size:
             st.subheader("Relationships Analysis")
-            st.dataframe(model.relationships)
+            aggrid_table(model.relationships)
 
         # Power Query
         if model.power_query.size:
             st.subheader("PowerQuery Analysis")
-            st.dataframe(model.power_query)
+            aggrid_table(model.power_query)
 
         # Merge Schema + DAX Columns
         st.subheader("Columns Analysis")
@@ -61,12 +61,12 @@ def app():
                 schema_df[col] = None
 
         merged_table = pd.concat([schema_df, calculated_df], ignore_index=True)
-        st.dataframe(merged_table)
+        aggrid_table(merged_table)
 
         # DAX Measures
         if model.dax_measures.size:
             st.subheader("DAX Measures")
-            st.dataframe(model.dax_measures)
+            aggrid_table(model.dax_measures)
 
         # Table Preview with Error Handling
         st.subheader("Table Viewer")
@@ -88,7 +88,7 @@ def app():
                     table_df = model.get_table(table_name_input)
                     st.write(f"Preview of table: `{table_name_input}`")
                     #aggrid_table(table_df)
-                    st.dataframe(table_df)
+                    aggrid_table(table_df)
                 except ValueError as e:
                     st.error(f"⚠️ Could not retrieve the table due to error:\n\n{e}")
                 except Exception as e:
