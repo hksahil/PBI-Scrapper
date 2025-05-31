@@ -31,8 +31,7 @@ def aggrid_table(df, fit_columns=True):
     AgGrid(df, gridOptions=gridOptions, fit_columns_on_grid_load=fit_columns)
 
 def app():
-    st.title("PBIX Assistant – Explore your PBIX file like a Pro")
-    st.subheader("Without opening PowerBI (or) having PowerBI Licenses :)")
+    st.title("Explore PBIX files without Power BI App or a license!")
 
     uploaded_file = st.file_uploader("📁 Upload a PBIX file", type="pbix")
     
@@ -100,16 +99,16 @@ def app():
     else:
         st.info("Upload a PBIX file to get started.")
 
-    # Custom footer
-custom_footer = """
-    <div style="position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 14px;">
-        Made with ❤️ by 
-        <a href="https://sahilchoudhary.com/" target="_blank" style="color: #1f77b4; text-decoration: underline;">
-            Sahil
-        </a>
-    </div>
-"""
-st.markdown(custom_footer, unsafe_allow_html=True)
+#     # Custom footer
+# custom_footer = """
+#     <div style="position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 14px;">
+#         Made with ❤️ by 
+#         <a href="https://sahilchoudhary.com/" target="_blank" style="color: #1f77b4; text-decoration: underline;">
+#             Sahil
+#         </a>
+#     </div>
+# """
+# st.markdown(custom_footer, unsafe_allow_html=True)
 
 
 if __name__ == '__main__':
