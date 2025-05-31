@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from pbixray.core import PBIXRay
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 def sizeof_fmt(num, suffix="B"):
     for unit in ("", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"):
@@ -9,33 +10,49 @@ def sizeof_fmt(num, suffix="B"):
         num /= 1024.0
     return f"{num:.1f}Yi{suffix}"
 
-def app():
-    st.title("PBIX info")
+def aggrid_table(df, fit_columns=True):
+    gb = GridOptionsBuilder.from_dataframe(df)
+    gb.configure_default_column(groupable=True, enableRowGroup=True, aggFunc="sum", editable=False)
+    gb.configure_side_bar()
+    gridOptions = gb.build()
+    AgGrid(df, gridOptions=gridOptions, fit_columns_on_grid_load=fit_columns)
 
-    uploaded_file = st.file_uploader("Choose a PBIX file", type="pbix")
+def app():
+    st.set_page_config(page_title="PBIX Assistant", layout="wide")
+    st.title("PBIX Assistant – Explore your PBIX file like a Pro")
+    st.subheader("Without opening PowerBI (or) having PowerBI Licenses :)")
+
+    uploaded_file = st.file_uploader("📁 Upload a PBIX file", type="pbix")
+    
     if uploaded_file:
-        # Load PBIX metadata
         model = PBIXRay(uploaded_file)
 
-        st.write(model.metadata)
-        
-        met1, met2 = st.columns(2)
-        met1.metric(label='Model size', value=sizeof_fmt(model.size))
-        met2.metric(label='# Tables', value=model.tables.size)
+        # Header Metrics
+        with st.container():
+            st.subheader("PBIX Metadata Overview")
+            met1, met2 = st.columns(2)
+            met1.metric(label='Model Size', value=sizeof_fmt(model.size))
+            met2.metric(label='Number of Tables', value=model.tables.size)
 
-        # # Show Schema
-        # st.write("Schema")
-        # st.dataframe(model.schema)
+        # Tables Stats
+        st.subheader("Table Analysis")
+        aggrid_table(model.statistics)
 
-        # # Show Calculated Columns
-        # st.write("Calculated columns")
-        # st.dataframe(model.dax_columns)
+        # Relationships
+        if model.relationships.size:
+            st.subheader("Relationships Analysis")
+            aggrid_table(model.relationships)
 
-        # Merge Schema and Calculated Columns
+        # Power Query
+        if model.power_query.size:
+            st.subheader("PowerQuery Analysis")
+            aggrid_table(model.power_query)
+
+        # Merge Schema + DAX Columns
+        st.subheader("Columns Analysis")
         schema_df = model.schema.copy()
         calculated_df = model.dax_columns.copy()
 
-        # Add missing columns to align structure
         for col in schema_df.columns:
             if col not in calculated_df.columns:
                 calculated_df[col] = None
@@ -44,29 +61,39 @@ def app():
                 schema_df[col] = None
 
         merged_table = pd.concat([schema_df, calculated_df], ignore_index=True)
-        st.write("Columns")
-        st.dataframe(merged_table)
+        aggrid_table(merged_table)
 
-        # Other metadata
-        st.write("Tables")
-        st.dataframe(model.statistics)
-
-        if model.relationships.size:
-            st.write("Relationships")
-            st.write(model.relationships)
-
-        if model.power_query.size:
-            st.write("PowerQuery")
-            st.dataframe(model.power_query)
-
+        # DAX Measures
         if model.dax_measures.size:
-            st.write("Measures:")
-            st.dataframe(model.dax_measures)
+            st.subheader("DAX Measures")
+            aggrid_table(model.dax_measures)
 
-        # Table viewer
-        table_name_input = st.selectbox("Select a table to peek at its contents:", model.tables)
-        if st.button("Un-VertiPaq"):
-            st.dataframe(model.get_table(table_name_input), use_container_width=True)
+        # Table Preview with Error Handling
+        st.subheader("Table Viewer")
+
+        valid_tables = []
+        for table in model.tables:
+            try:
+                _ = model.get_table(table)
+                valid_tables.append(table)
+            except:
+                continue
+
+        if not valid_tables:
+            st.warning("⚠️ No tables could be previewed from this PBIX file.")
+        else:
+            table_name_input = st.selectbox("Choose a table to preview its content", valid_tables)
+            if st.button("📤 Get the data"):
+                try:
+                    table_df = model.get_table(table_name_input)
+                    st.write(f"Preview of table: `{table_name_input}`")
+                    aggrid_table(table_df)
+                except ValueError as e:
+                    st.error(f"⚠️ Could not retrieve the table due to error:\n\n{e}")
+                except Exception as e:
+                    st.error(f"❌ Unexpected error while loading table:\n\n{e}")
+    else:
+        st.info("Upload a PBIX file to get started.")
 
 if __name__ == '__main__':
     app()
