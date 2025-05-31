@@ -19,8 +19,8 @@ def aggrid_table(df, fit_columns=True):
 
 def app():
     st.set_page_config(page_title="PBIX Assistant", layout="wide")
-    st.title("PBIX Assistant – Explore your PBIX file like a Pro")
-    st.subheader("Without opening PowerBI (or) having PowerBI Licenses :)")
+    # st.title("PBIX Assistant – Explore your PBIX file like a Pro")
+    # st.subheader("Without opening PowerBI (or) having PowerBI Licenses :)")
 
     uploaded_file = st.file_uploader("📁 Upload a PBIX file", type="pbix")
     
